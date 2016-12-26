@@ -52,14 +52,15 @@ class Hangman
 	end
 
 	def find_saved_game
+		puts "#, Name, Guess So Far, Guesses Left"
 		saved_games = CSV.read("saved_games/saved_games.csv", headers: true, header_converters: :symbol)
 		saved_games.each do |row|
 			id = row [0]
-			puts "#, Name, Guess So Far, Guesses Left\n#{id}: #{row[:name]}  #{row[:guess_so_far]}  #{row[:guesses_left]}"
+			puts "#{id}: #{row[:name]}  #{row[:guess_so_far]}  #{row[:guesses_left]}"
 		end
 		puts "Type the number of the game you would like to play."
 		game_id = gets.chomp.to_i
-		unless saved_games[(game_id - 1)].nil?
+		unless game_id == 0 || saved_games[(game_id - 1)].nil?
 			@game = saved_games[(game_id - 1)]
 		else
 			puts "Please choose a number from the list"
@@ -84,7 +85,7 @@ class Hangman
 		#saved_games.generate_line(@game)
 		saved_games.puts @game
 		puts "SAVED!"
-		puts @game.join(", ")
+		puts @game[1]
 		puts "Come again soon!"
 		exit
 	end
@@ -142,7 +143,7 @@ class Hangman
 	end
 
 	def game_over_lose
-		puts "LOSER!"
+		puts "LOSER! The word was #{@word}"
 		play_again?
 	end
 
