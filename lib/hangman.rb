@@ -1,9 +1,24 @@
+require "csv"
+
 class Hangman
 
 	def initialize
+		system "clear" or system "cls"
 		introduction
 	end
 
+	def introduction
+		puts "Welcome to Hangman!\n\nType 1 to start a new game or 2 to load a saved game.\nAnything else will close the program."
+		selection = gets.chomp
+		case selection
+		when '1' then new_game
+		when '2' then find_saved_game
+		else 
+			exit
+		end
+	end
+
+	#This section includes methods exclusive to brand new games
 	def new_game
 		@guesses_left = 6
 		@word = generate_word
@@ -12,25 +27,6 @@ class Hangman
 		@guess_so_far = []
 		starting_template(@word.length)
 		gameplay
-	end
-
-	def gameplay
-		puts "\n#{@guesses_left} mistakes left."
-		puts "Incorrect letters so far: #{@incorrect_guesses.join(" ")}"
-		puts "#{@guess_so_far.join(" ")}"
-		puts @word
-		pick_a_letter
-	end
-
-	def introduction
-		puts "Welcome to Hangman!\n\nType 1 to start a new game or 2 to load a saved game.\nAnything else will close the program."
-		selection = gets.chomp
-		case selection
-		when '1' then new_game
-		when '2' then saved_game
-		else 
-			exit
-		end
 	end
 
 	def generate_word
@@ -45,13 +41,64 @@ class Hangman
 		n.times {@guess_so_far << "_"}
 	end
 
+	#This section includes methods exclusive to loading saved games
+	def saved_game
+		@guesses_left = @game[:guesses_left].to_i
+		@word = @game[:word]
+		@correct_guesses = @game[:correct_guesses].chars
+		@incorrect_guesses = @game[:incorrect_guesses].chars
+		@guess_so_far = @game[:guess_so_far].chars
+		gameplay
+	end
+
+	def find_saved_game
+		saved_games = CSV.read("saved_games/saved_games.csv", headers: true, header_converters: :symbol)
+		saved_games.each do |row|
+			id = row [0]
+			puts "#, Name, Guess So Far, Guesses Left\n#{id}: #{row[:name]}  #{row[:guess_so_far]}  #{row[:guesses_left]}"
+		end
+		puts "Type the number of the game you would like to play."
+		game_id = gets.chomp.to_i
+		unless saved_games[(game_id - 1)].nil?
+			@game = saved_games[(game_id - 1)]
+		else
+			puts "Please choose a number from the list"
+			find_saved_game
+		end
+		saved_game
+	end
+
+	def gameplay
+		puts "\n#{@guesses_left} mistakes left."
+		puts "Incorrect letters so far: #{@incorrect_guesses.join(" ")}"
+		puts "#{@guess_so_far.join(" ")}"
+		pick_a_letter
+	end
+
+	def save_game
+		puts "What would you like to name your saved game?"
+		name = gets.chomp
+		id = IO.readlines('saved_games/saved_games.csv').size
+		saved_games = CSV.open("saved_games/saved_games.csv", "a", headers: true, header_converters: :symbol)
+		@game = [id, name, @word, @guess_so_far.join, @guesses_left, @correct_guesses.join, @incorrect_guesses.join]
+		#saved_games.generate_line(@game)
+		saved_games.puts @game
+		puts "SAVED!"
+		puts @game.join(", ")
+		puts "Come again soon!"
+		exit
+	end
+
+	#This section includes all methods shared by both new and saved games
 	def pick_a_letter
-		puts "\nPlease choose a letter"
-		guess = gets.chomp.downcase
+		puts "\nPlease choose a letter or type 1 to save your current game and exit."
+		guess = gets.chomp
 		puts ''
-		bad_guess unless guess.match(/^[a-z]$/)
+		bad_guess unless guess.match(/^[A-z1]$/)
+		guess.downcase! unless guess == "1"
 		second_guessing(guess) if (@correct_guesses + @incorrect_guesses).include? guess
-		correct_letter(guess) if @word.scan(/./).include? guess
+		correct_letter(guess) if @word.chars.include? guess
+		save_game if guess == "1"
 		incorrect_letter(guess)
 
 	end
